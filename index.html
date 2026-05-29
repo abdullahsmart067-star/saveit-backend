@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saveit — Download Anything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --border: rgba(255,255,255,0.08);
+  --border-hover: rgba(255,255,255,0.2);
+  --text: #f2f0eb;
+  --muted: #888;
+  --hint: #444;
+  --accent: #c8f53b;
+  --accent-dark: #a8d020;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1.25rem 4rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background glow */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(200,245,59,0.07) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 560px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  animation: fadeUp 0.5s ease both;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 0.5rem;
+}
+
+.logo-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 2px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.tagline {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  font-weight: 300;
+}
+
+.platforms {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--hint);
+  letter-spacing: 0.02em;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.pill:hover { border-color: var(--border-hover); color: var(--muted); }
+
+/* Input */
+.input-wrap {
+  position: relative;
+  margin-bottom: 0.75rem;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+
+.input-wrap input {
+  width: 100%;
+  height: 56px;
+  padding: 0 130px 0 18px;
+  font-size: 14.5px;
+  font-family: 'DM Sans', sans-serif;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-wrap input::placeholder { color: var(--hint); }
+
+.input-wrap input:focus {
+  border-color: rgba(200,245,59,0.4);
+  box-shadow: 0 0 0 3px rgba(200,245,59,0.06);
+}
+
+.input-wrap button {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  height: 44px;
+  padding: 0 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+
+.input-wrap button:hover { background: var(--accent-dark); }
+.input-wrap button:active { transform: scale(0.97); }
+
+/* Status */
+.status {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 15px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 0.75rem;
+  animation: fadeUp 0.2s ease both;
+}
+.status.info  { display: flex; background: rgba(100,160,255,0.08); border: 1px solid rgba(100,160,255,0.2); color: #8ab4f8; }
+.status.ok    { display: flex; background: rgba(200,245,59,0.08);  border: 1px solid rgba(200,245,59,0.2);  color: var(--accent); }
+.status.err   { display: flex; background: rgba(255,90,90,0.08);   border: 1px solid rgba(255,90,90,0.2);   color: #ff8a8a; }
+
+.spin {
+  width: 14px; height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Main card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  animation: fadeUp 0.3s ease both;
+}
+
+.section-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--hint);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* Tabs */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 1.5rem;
+  background: var(--surface2);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.tab {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Quality grid */
+.grid { display: grid; gap: 8px; margin-bottom: 0.25rem; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+.qbtn {
+  height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: var(--surface2);
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.qbtn:hover:not(.na) { border-color: var(--border-hover); }
+
+.qbtn.sel {
+  border-color: var(--accent);
+  background: rgba(200,245,59,0.06);
+}
+
+.qbtn.na { opacity: 0.28; cursor: not-allowed; }
+
+.ql { font-size: 14px; font-weight: 600; color: var(--text); }
+.qs { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: 5px;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: rgba(200,245,59,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(200,245,59,0.3);
+  font-weight: 600;
+}
+
+/* Download button */
+.dl-btn {
+  width: 100%;
+  height: 52px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  margin-top: 1.5rem;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+
+.dl-btn:hover { background: var(--accent-dark); }
+.dl-btn:active { transform: scale(0.99); }
+
+.mp3-opts { display: none; }
+.mp3-opts.on { display: block; }
+.mp4-opts { display: none; }
+.mp4-opts.on { display: block; }
+
+footer {
+  margin-top: 2rem;
+  font-size: 11px;
+  color: var(--hint);
+  text-align: center;
+  line-height: 1.8;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-icon">⬇️</div>
+      <h1>SAVEIT</h1>
+    </div>
+    <p class="tagline">Download videos & audio from any platform</p>
+    <div class="platforms">
+      <span class="pill">YouTube</span>
+      <span class="pill">Instagram</span>
+      <span class="pill">TikTok</span>
+      <span class="pill">Facebook</span>
+      <span class="pill">Twitter / X</span>
+      <span class="pill">+ 1000 more</span>
+    </div>
+  </div>
+
+  <div class="input-wrap">
+    <input type="text" id="url" placeholder="Paste a video link and hit Analyze…" />
+    <button onclick="analyze()">Analyze →</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div id="main" class="card" style="display:none">
+    <div class="section-label">Format</div>
+    <div class="tabs">
+      <div class="tab active" id="t4" onclick="switchTab('mp4')">🎬 MP4 — Video</div>
+      <div class="tab" id="t3" onclick="switchTab('mp3')">🎵 MP3 — Audio only</div>
+    </div>
+
+    <div id="mp4-opts" class="mp4-opts on">
+      <div class="section-label">Video quality</div>
+      <div id="vgrid" class="grid grid-3"></div>
+    </div>
+
+    <div id="mp3-opts" class="mp3-opts">
+      <div class="section-label">Audio bitrate</div>
+      <div id="agrid" class="grid grid-4"></div>
+    </div>
+
+    <button class="dl-btn" onclick="doDownload()">⬇ Download</button>
+  </div>
+
+  <footer>
+    Powered by yt-dlp · Personal use only<br>
+    Respect copyright laws and platform terms of service
+  </footer>
+</div>
+
+<script>
+// ============================================================
+// 👇 CHANGE THIS to your Railway URL after you deploy
+// ============================================================
+const API = "http://localhost:5000";
+// ============================================================
+
+const VQ = [
+  { l:"360p",  s:"480×360",  ok:true },
+  { l:"480p",  s:"854×480",  ok:true },
+  { l:"720p",  s:"HD",       ok:true,  b:"HD" },
+  { l:"1080p", s:"Full HD",  ok:true,  b:"FHD" },
+  { l:"1440p", s:"QHD",      ok:false },
+  { l:"2K",    s:"2048px",   ok:false },
+];
+const AQ = [
+  { l:"128 kbps", s:"Standard" },
+  { l:"192 kbps", s:"Good" },
+  { l:"256 kbps", s:"High" },
+  { l:"320 kbps", s:"Best" },
+];
+
+let sv = "720p", sa = "192 kbps", tab = "mp4";
+
+function render() {
+  document.getElementById("vgrid").innerHTML = VQ.map(q => `
+    <div class="qbtn${q.l===sv?" sel":""}${!q.ok?" na":""}" ${q.ok?`onclick="pick('${q.l}')"`:""}>
+      ${q.b ? `<span class="badge">${q.b}</span>` : ""}
+      <span class="ql">${q.l}</span>
+      <span class="qs">${q.ok ? q.s : "N/A"}</span>
+    </div>`).join("");
+
+  document.getElementById("agrid").innerHTML = AQ.map(a => `
+    <div class="qbtn${a.l===sa?" sel":""}" onclick="pickA('${a.l}')">
+      <span class="ql">${a.l.replace(" kbps","")}</span>
+      <span class="qs">${a.s}</span>
+    </div>`).join("");
+}
+
+function pick(q)  { sv = q; render(); }
+function pickA(q) { sa = q; render(); }
+
+function switchTab(t) {
+  tab = t;
+  document.getElementById("t4").classList.toggle("active", t==="mp4");
+  document.getElementById("t3").classList.toggle("active", t==="mp3");
+  document.getElementById("mp4-opts").classList.toggle("on", t==="mp4");
+  document.getElementById("mp3-opts").classList.toggle("on", t==="mp3");
+}
+
+function setStatus(type, html) {
+  const s = document.getElementById("status");
+  s.className = "status " + type;
+  s.innerHTML = html;
+}
+
+function analyze() {
+  const url = document.getElementById("url").value.trim();
+  if (!url) { setStatus("err", "⚠️ Please paste a link first."); return; }
+  setStatus("info", `<span class="spin"></span> Analyzing link…`);
+  document.getElementById("main").style.display = "none";
+  setTimeout(() => {
+    setStatus("ok", "✓ Link ready — choose your format and quality below.");
+    document.getElementById("main").style.display = "block";
+    render();
+  }, 800);
+}
+
+function doDownload() {
+  const url = document.getElementById("url").value.trim();
+  if (!url) return;
+  const desc = tab==="mp4" ? sv+" MP4" : sa+" MP3";
+  setStatus("info", `<span class="spin"></span> Downloading ${desc}… this may take a minute`);
+
+  const ep = tab==="mp4"
+    ? `${API}/download?url=${encodeURIComponent(url)}&format=mp4&quality=${encodeURIComponent(sv)}`
+    : `${API}/download?url=${encodeURIComponent(url)}&format=mp3&bitrate=${encodeURIComponent(sa)}`;
+
+  fetch(ep)
+    .then(r => {
+      if (!r.ok) return r.json().then(e => { throw new Error(e.error || "Server error") });
+      return r.blob().then(b => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(b);
+        a.download = `saveit.${tab==="mp4" ? "mp4" : "mp3"}`;
+        a.click();
+        setStatus("ok", `✓ Downloaded as ${desc}!`);
+      });
+    })
+    .catch(e => setStatus("err", "⚠️ " + e.message));
+}
+
+document.getElementById("url").addEventListener("keydown", e => {
+  if (e.key === "Enter") analyze();
+});
+</script>
+</body>
+</html>
