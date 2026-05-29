@@ -1,1 +1,1 @@
-web: python server.py
+web: apt-get update && apt-get install -y ffmpeg && python server.py
